@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ethics Simulator — research ethics decision game</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%230f766e'/%3E%3Cg fill='none' stroke='white' stroke-width='1.7' stroke-linecap='round'%3E%3Cpath d='M12 4v14M8 18h8M12 5l-6 1.5M12 5l6 1.5'/%3E%3Cpath d='M4.5 11l1.5-4.5L7.5 11a1.9 1.9 0 0 1-3 0zM15 11l1.5-4.5L18 11a1.9 1.9 0 0 1-3 0z'/%3E%3C/g%3E%3C/svg%3E">
+<meta name="description" content="A free, private, in-browser research ethics decision game. Play a researcher bringing studies to the committee: deception, consent, debriefing, safeguarding and data protection — with feedback grounded in the BPS code of human research ethics. By Joshua Bellot (Psych &amp; Me).">
+<meta name="theme-color" content="#f8f7f3">
+<style>
+  :root{
+    --bg:#f8f7f3; --card:#ffffff; --ink:#20262a; --muted:#5c6663; --faint:#8b9491;
+    --accent:#0f766e; --accent-dark:#0b5a54; --accent-soft:#e7f2f0; --accent-softer:#f2f8f7;
+    --amber:#b45309; --amber-soft:#fdf3e7; --border:#e5e3dc; --border-strong:#d5d2c8;
+    --danger:#b91c1c; --danger-soft:#fdeeee; --ok:#15803d; --ok-soft:#eaf6ec;
+    --serif:ui-serif,"Iowan Old Style",Georgia,"Times New Roman",serif;
+    --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+    --radius:14px; --shadow:0 1px 2px rgba(32,38,42,.05),0 4px 14px rgba(32,38,42,.06);
+    --hover:#efece4;
+    /* principle colours (light) */
+    --p-consent-bg:#e7f2f0; --p-consent-bd:#0f766e;
+    --p-deception-bg:#fdf3e7; --p-deception-bd:#b45309;
+    --p-harm-bg:#fdeeee; --p-harm-bd:#b91c1c;
+    --p-withdraw-bg:#f0eafc; --p-withdraw-bd:#7c3aed;
+    --p-privacy-bg:#e8effc; --p-privacy-bd:#1d4ed8;
+    --p-debrief-bg:#eaf6ec; --p-debrief-bd:#15803d;
+    color-scheme:light;
+  }
+  :root[data-theme="dark"]{
+    --bg:#191816; --card:#211f1c; --ink:#edeae3; --muted:#a9a398; --faint:#837d72;
+    --accent:#35b5a9; --accent-dark:#7cd6cc; --accent-soft:#24413d; --accent-softer:#232b29;
+    --amber:#e0a13c; --amber-soft:#392c17; --border:#383530; --border-strong:#4a463f;
+    --danger:#f08579; --danger-soft:#3a2422; --ok:#6fce7f; --ok-soft:#1f3324;
+    --hover:#2a2823;
+    --p-consent-bg:#1d3a37; --p-consent-bd:#35b5a9;
+    --p-deception-bg:#392c17; --p-deception-bd:#e0a13c;
+    --p-harm-bg:#3a2422; --p-harm-bd:#f08579;
+    --p-withdraw-bg:#2e2744; --p-withdraw-bd:#a78bfa;
+    --p-privacy-bg:#232c42; --p-privacy-bd:#7aa2f7;
+    --p-debrief-bg:#1f3324; --p-debrief-bd:#6fce7f;
+    --shadow:0 1px 2px rgba(0,0,0,.25),0 4px 14px rgba(0,0,0,.3);
+    color-scheme:dark;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15.5px;line-height:1.55;-webkit-font-smoothing:antialiased}
+  h1,h2,h3{font-family:var(--serif);letter-spacing:-.01em}
+  button{font-family:inherit}
+  a{color:var(--accent)}
+  /* ── top bar ─────────────────────────────── */
+  .topbar{background:var(--card);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:40}
+  .topbar-in{max-width:1160px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;gap:14px}
+  .brandmark{flex:0 0 auto;width:38px;height:38px;border-radius:11px;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center}
+  .brand h1{font-size:19px;font-weight:600;margin:0}
+  .brand p{margin:0;font-size:12.5px;color:var(--muted)}
+  .spacer{flex:1}
+  .theme-btn{width:38px;height:38px;border-radius:11px;border:1px solid var(--border);background:var(--card);color:var(--muted);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:.15s}
+  .theme-btn:hover{color:var(--ink);border-color:var(--border-strong)}
+  .theme-btn svg{width:17px;height:17px}
+  .btn-ghost{display:inline-flex;align-items:center;gap:7px;padding:9px 14px;border-radius:11px;border:1px solid var(--border);background:var(--card);color:var(--ink);text-decoration:none;font-size:13px;font-weight:600;transition:.15s}
+  .btn-ghost:hover{border-color:var(--accent);color:var(--accent)}
+  /* ── shell ───────────────────────────────── */
+  .shell{max-width:1160px;margin:0 auto;padding:26px 20px 60px;display:grid;grid-template-columns:228px 1fr;gap:26px;align-items:start}
+  nav.tabs{position:sticky;top:86px;display:flex;flex-direction:column;gap:5px}
+  nav.tabs button{display:flex;align-items:center;gap:10px;padding:11px 13px;border-radius:11px;border:1px solid transparent;background:none;color:var(--muted);font-size:13.5px;font-weight:600;text-align:left;cursor:pointer;transition:.15s}
+  nav.tabs button:hover{background:var(--hover);color:var(--ink)}
+  nav.tabs button[aria-selected="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-dark)}
+  nav.tabs button .ic{width:17px;height:17px;flex:0 0 auto;display:flex;align-items:center;justify-content:center}
+  nav.tabs button .ic svg{width:17px;height:17px}
+  nav.tabs .note{margin:18px 4px 0;padding:13px 14px;border-radius:12px;background:var(--accent-softer);border:1px solid var(--accent-soft);font-size:12.3px;line-height:1.5;color:var(--muted)}
+  nav.tabs .note b{color:var(--accent-dark)}
+  .panel{min-width:0}
+  .panel h2{font-size:26px;margin:0 0 8px;font-weight:600}
+  .panel .lead{color:var(--muted);margin:0 0 20px;font-size:14.5px;max-width:660px}
+  .panel .lead b{color:var(--ink)}
+  /* ── cards, buttons ──────────────────────── */
+  .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow)}
+  .card + .card{margin-top:16px}
+  .card h3{margin:0 0 10px;font-size:17px;font-weight:600}
+  .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+  .btn{display:inline-flex;align-items:center;gap:7px;padding:9px 15px;border-radius:11px;border:1px solid var(--accent);background:var(--accent);color:#fff;font-size:13.5px;font-weight:600;cursor:pointer;transition:.15s;text-decoration:none}
+  .btn:hover{background:var(--accent-dark);border-color:var(--accent-dark)}
+  :root[data-theme="dark"] .btn{color:#10201d}
+  .btn.outline{background:var(--card);color:var(--ink);border-color:var(--border-strong)}
+  .btn.outline:hover{border-color:var(--accent);color:var(--accent);background:var(--card)}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+  .hint{font-size:12.5px;color:var(--faint)}
+  /* ── scenario picker ─────────────────────── */
+  .scen-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .scen-card{display:flex;flex-direction:column;gap:9px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow);text-align:left;cursor:pointer;transition:.15s;font-family:inherit}
+  .scen-card:hover{border-color:var(--accent);transform:translateY(-2px)}
+  .scen-card:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .scen-card .tag{display:inline-flex;align-self:flex-start;padding:4px 10px;border-radius:999px;background:var(--accent-soft);color:var(--accent-dark);font-size:11.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase}
+  .scen-card h3{margin:0;font-size:17.5px}
+  .scen-card p{margin:0;font-size:13.5px;color:var(--muted);line-height:1.55}
+  .scen-card .meta{margin-top:auto;padding-top:6px;font-size:12px;color:var(--faint);display:flex;gap:12px;flex-wrap:wrap}
+  .scen-card .meta b{color:var(--muted);font-weight:600}
+  .scen-card .verdict-chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700}
+  /* ── game view ───────────────────────────── */
+  .brief{border-left:4px solid var(--accent);background:var(--accent-softer);border-radius:0 var(--radius) var(--radius) 0}
+  .brief h3{display:flex;align-items:center;gap:8px}
+  .brief p{margin:0 0 8px;font-size:14px;line-height:1.65}
+  .brief p:last-child{margin-bottom:0}
+  .brief .role{font-weight:700;color:var(--accent-dark)}
+  .progress-row{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+  .progress-row .label{font-size:12.5px;font-weight:700;color:var(--muted);letter-spacing:.02em;white-space:nowrap}
+  .pbar{flex:1;height:7px;border-radius:99px;background:var(--hover);overflow:hidden}
+  .pbar i{display:block;height:100%;background:var(--accent);border-radius:99px;transition:width .35s}
+  .situation{font-family:var(--serif);font-size:17px;line-height:1.7;margin:0 0 16px;white-space:pre-wrap}
+  .option{display:flex;gap:12px;width:100%;text-align:left;padding:13px 15px;margin-bottom:9px;border-radius:12px;border:1px solid var(--border-strong);background:var(--card);color:var(--ink);font-size:14.5px;line-height:1.55;cursor:pointer;transition:.15s;align-items:flex-start}
+  .option:hover:not(:disabled){border-color:var(--accent);background:var(--accent-softer)}
+  .option .letter{flex:0 0 auto;width:26px;height:26px;border-radius:8px;background:var(--hover);color:var(--muted);font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;margin-top:1px}
+  .option:disabled{cursor:default}
+  .option.picked{border-color:var(--accent);background:var(--accent-soft)}
+  .option.picked .letter{background:var(--accent);color:#fff}
+  :root[data-theme="dark"] .option.picked .letter{color:#10201d}
+  .feedback{margin-top:14px;border-radius:12px;padding:15px 16px;border:1px solid var(--border-strong);background:var(--hover)}
+  .feedback .rate{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;padding:5px 11px;border-radius:999px;margin-bottom:10px}
+  .rate.r2{background:var(--ok-soft);color:var(--ok)}
+  .rate.r1{background:var(--amber-soft);color:var(--amber)}
+  .rate.r0{background:var(--danger-soft);color:var(--danger)}
+  .feedback p{margin:0 0 9px;font-size:14.2px;line-height:1.65}
+  .feedback .pills{display:flex;flex-wrap:wrap;gap:7px;margin:2px 0 0}
+  .pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700;border:1px solid;border-radius:999px}
+  .pill .dot{width:8px;height:8px;border-radius:50%}
+  /* ── verdict ─────────────────────────────── */
+  .stamp{display:inline-flex;align-items:center;gap:10px;padding:9px 18px;border-radius:11px;font-family:var(--serif);font-size:19px;font-weight:700;border:2px solid;transform:rotate(-1.2deg)}
+  .stamp.approve{color:var(--ok);border-color:var(--ok);background:var(--ok-soft)}
+  .stamp.minor{color:var(--amber);border-color:var(--amber);background:var(--amber-soft)}
+  .stamp.major{color:var(--danger);border-color:var(--danger);background:var(--danger-soft)}
+  .score-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)}
+  .score-row:last-child{border-bottom:none}
+  .score-row .pl{display:inline-flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;flex:1}
+  .score-row .dot{width:10px;height:10px;border-radius:50%}
+  .score-row .marks{font-size:12.5px;font-weight:700}
+  .score-row .marks.m2{color:var(--ok)} .score-row .marks.m1{color:var(--amber)} .score-row .marks.m0{color:var(--danger)}
+  .review-table{width:100%;border-collapse:collapse;font-size:13.5px}
+  .review-table th{text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--faint);padding:7px 10px;border-bottom:1px solid var(--border-strong)}
+  .review-table td{padding:10px;border-bottom:1px solid var(--border);vertical-align:top;line-height:1.5}
+  .review-table .rk{font-weight:700;white-space:nowrap}
+  .review-table .rk.r2{color:var(--ok)} .review-table .rk.r1{color:var(--amber)} .review-table .rk.r0{color:var(--danger)}
+  .tablewrap{overflow-x:auto}
+  /* ── principle cards ─────────────────────── */
+  .guide-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .guide-card h3{display:flex;align-items:flex-start;gap:10px}
+  .guide-card .swatch{flex:0 0 auto;width:14px;height:14px;border-radius:4px;border:2px solid;margin-top:4px}
+  .guide-card p{margin:0 0 9px;font-size:14px;line-height:1.65}
+  .guide-card p:last-child{margin-bottom:0}
+  .guide-card .good{border-left:3px solid var(--ok);padding:9px 12px;background:var(--ok-soft);border-radius:0 9px 9px 0;font-size:13.5px}
+  .guide-card .ref{font-size:12.3px;color:var(--faint);margin-top:9px}
+  .wide{grid-column:1/-1}
+  /* ── report ──────────────────────────────── */
+  .stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+  .stat{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:13px 15px;box-shadow:var(--shadow)}
+  .stat .v{font-family:var(--serif);font-size:24px;font-weight:700;line-height:1.1}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:3px}
+  .reflect{border-left:3px solid var(--accent);padding:9px 13px;background:var(--accent-softer);border-radius:0 9px 9px 0;font-size:13.8px;margin:0 0 8px;line-height:1.6}
+  .empty{padding:36px 20px;text-align:center;color:var(--muted);font-size:14.5px}
+  /* ── footer / toast ──────────────────────── */
+  footer{max-width:1160px;margin:0 auto;padding:0 20px 34px;font-size:12.5px;color:var(--faint);line-height:1.6}
+  footer a{color:var(--accent)}
+  #toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(16px);background:var(--tip-bg,#20262a);color:#fff;padding:10px 18px;border-radius:11px;font-size:13.5px;font-weight:600;opacity:0;pointer-events:none;transition:.25s;z-index:60;max-width:90vw}
+  :root[data-theme="dark"] #toast{--tip-bg:#ece9e2;color:#1b1a17}
+  #toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+  /* ── responsive ──────────────────────────── */
+  @media(max-width:860px){
+    .shell{grid-template-columns:1fr;gap:14px;padding:18px 14px 46px}
+    nav.tabs{position:static;flex-direction:row;overflow-x:auto;padding-bottom:4px;gap:6px}
+    nav.tabs button{white-space:nowrap;padding:9px 12px}
+    nav.tabs .note{display:none}
+    .scen-grid{grid-template-columns:1fr}
+    .guide-grid{grid-template-columns:1fr}
+    .stat-grid{grid-template-columns:repeat(2,1fr)}
+  }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-in">
+    <span class="brandmark" aria-hidden="true"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 4v14M8 18h8M12 5l-6 1.5M12 5l6 1.5"/><path d="M4.5 11l1.5-4.5L7.5 11a1.9 1.9 0 0 1-3 0zM15 11l1.5-4.5L18 11a1.9 1.9 0 0 1-3 0z"/></svg></span>
+    <div class="brand"><h1>Ethics Simulator</h1><p>Research ethics decision game — private, in your browser</p></div>
+    <span class="spacer"></span>
+    <a class="btn-ghost" href="https://github.com/PsychandMe">More tools<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg></a>
+    <button class="theme-btn" id="theme-btn" aria-label="Switch theme"></button>
+  </div>
+</header>
+<div class="shell">
+  <nav class="tabs" role="tablist" aria-label="Sections">
+    <button id="tab-play" role="tab" aria-selected="true"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 3 20 12 6 21 6 3"/></svg></span>Simulate</button>
+    <button id="tab-principles" role="tab" aria-selected="false"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span>Principles</button>
+    <button id="tab-report" role="tab" aria-selected="false"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span>My report</button>
+    <div class="note"><b>How it works.</b> You play the researcher. At each decision point, pick a course of action and the committee responds. Nothing you do here is saved anywhere but this browser — and you can wipe it in one click.</div>
+  </nav>
+  <div class="panel">
+    <section id="panel-play" role="tabpanel">
+      <h2>Run the study. Face the committee.</h2>
+      <p class="lead">Pick a scenario and you become the researcher — <b>every design choice has an ethical cost or a payoff</b>. Each decision point ends with feedback grounded in the <b>BPS Code of Human Research Ethics</b>, and the scenario closes with the committee's verdict on your protocol.</p>
+      <div id="play-root"></div>
+    </section>
+    <section id="panel-principles" role="tabpanel" hidden>
+      <h2>Learn the principles</h2>
+      <p class="lead">The six principles the simulator scores you on, plus two special cases students ask about most: <b>when deception is ever justified</b> and <b>working with vulnerable groups</b>. Grounded in the <b>BPS Code of Human Research Ethics (2022)</b> and UK GDPR practice.</p>
+      <div id="principles-cards" class="guide-grid"></div>
+    </section>
+    <section id="panel-report" role="tabpanel" hidden>
+      <h2>My report</h2>
+      <p class="lead">Your decision record across every scenario you've attempted — <b>your choices beside the strongest ones</b>, a principle-by-principle tally, and reflection prompts for seminars or supervision. Export it as HTML, or wipe it.</p>
+      <div id="report-root"></div>
+    </section>
+  </div>
+</div>
+<footer>
+  <p><b>Ethics Simulator</b> — built by <b>Joshua Bellot</b> (MSc Psychology (Conversion), Manchester Metropolitan University) for the <a href="https://github.com/PsychandMe">Psych &amp; Me</a> toolkit. Teaching aid only: scenarios are fictional composites and feedback paraphrases good practice, not legal advice. Always consult your institution's ethics committee and current BPS guidance. Runs entirely in your browser — decisions stay on your device.</p>
+</footer>
+<div id="toast" role="status" aria-live="polite"></div>
+<script>
+"use strict";
+/* ════════════════════ 1. helpers ════════════════════ */
+const $=id=>document.getElementById(id);
+const esc=s=>s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+let toastTimer=null;
+function toast(msg){const t=$("toast");t.textContent=msg;t.classList.add("on");clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove("on"),2200);}
+
+/* ════════════════════ 2. principles ════════════════════ */
+const PRINCIPLES={
+  consent:{label:"Informed consent",color:"consent",
+    define:"Participants must understand what they are agreeing to — the purpose, what they will do, the risks, and their rights — in language they can actually read.",
+    why:"Consent given in the dark is not consent. Autonomy requires comprehension, and comprehension requires plain English, honesty about the study's aims, and freedom to say no without consequence.",
+    good:"Layered information (a short summary plus expandable detail), separate tick boxes for optional uses like quotes, no pressure or implied obligation, and consent re-checked if the study changes."},
+  deception:{label:"Deception",color:"deception",
+    define:"Withholding or misrepresenting information so participants act without full knowledge of the study's aims.",
+    why:"Deception sits in direct tension with informed consent — which is why regulators treat it as a last resort, not a design flourish. Participants who feel tricked lose trust in researchers generally, not just in you.",
+    good:"Only where there is no viable alternative, the deception is minimal, the scientific value is real, and a full debrief restores people to their pre-study state — including the right to withdraw their data once they know what really happened."},
+  harm:{label:"Protection from harm",color:"harm",
+    define:"Participants must leave the study no worse — physically or psychologically — than they arrived, and any foreseeable distress must be monitored and bounded.",
+    why:"'Mild distress' is easy to promise in a form and hard to honour in a room. Harm is not limited to the participants: researchers, assistants and even the field can be affected, and distress data that never reaches the committee is harm that was never governed.",
+    good:"Stopping rules agreed in advance (any sign of distress ends the procedure), a distress protocol participants can invoke at any point, signposting to support, and honest reporting of every adverse event."},
+  withdraw:{label:"Right to withdraw",color:"withdraw",
+    define:"Participants can stop taking part, or withdraw their data afterwards, without giving a reason and without penalty.",
+    why:"Withdrawal is what keeps consent ongoing rather than a signature extracted once. It matters most after deception — once people learn the study's true purpose, they may no longer wish to be part of it.",
+    good:"Withdrawal stated with a concrete deadline that the participant is reminded of at debrief, data kept identifiable just long enough to honour it, and no arguments when someone exercises it."},
+  privacy:{label:"Confidentiality & data protection",color:"privacy",
+    define:"Personal data is collected only when needed, stored securely, separated from responses, and never shared in a form that could re-identify someone.",
+    why:"UK GDPR gives research data a lawful basis only if you honour your promises: anonymise when you said you would, keep identifying details apart, and never let a prize draw or a data-sharing request quietly undo your protections.",
+    good:"Responses and identities collected in separate instruments, identifying details deleted on schedule, free-text checked for self-identifying detail before sharing, and a named data-protection plan the committee can inspect."},
+  debrief:{label:"Debriefing & integrity",color:"debrief",
+    define:"After taking part, participants learn the study's true purpose, have questions answered, and can withdraw — and researchers report what actually happened, honestly.",
+    why:"The debrief is where deception is paid back and where participants are restored. Integrity continues after the session: distress you observed, dropouts you recorded and mistakes you made are all part of the scientific record.",
+    good:"Immediate, thorough debriefing with a written take-home sheet, a wellbeing check-in for anyone affected, and write-ups that report adverse events and stopping rates to participants, readers and the committee."}
+};
+const P_COLORS=["consent","deception","harm","withdraw","privacy","debrief"];
+
+/* ════════════════════ 3. scenarios ════════════════════ */
+const SCENARIOS=[
+{
+  id:"obedience",title:"The Pressure to Conform",tag:"Deception in the lab",difficulty:"Hard",minutes:"~8 min",
+  teaser:"A Milgram-inspired study of obedience — actors, fake shocks and a script that does not want to stop.",
+  brief:{role:"You are the postgraduate researcher.",
+    context:"You want to replicate the core of Milgram's obedience paradigm: participants believe they are administering electric shocks to a 'learner' (actually an actor, no real shocks) while an experimenter in a white coat instructs them to continue. Your supervisor thinks it would make a striking dissertation. It needs ethics approval first — and Milgram's paradigm is the classic example of why committees exist.",
+    task:"Bring this study to the committee without betraying either the science or the people in your chair."},
+  decisions:[
+    {situation:"First decision: the recruitment advert and consent form. What do participants read before they sign up?",
+      options:[
+        {text:"Follow the classic script: advertise it as a 'study of the effects of punishment on learning'. Nobody needs to know about the obedience element until debrief.",
+         r:0,principles:["consent","deception"],
+         outcome:"This is what Milgram did in 1961 — and it is exactly what modern committees refuse. Burying the study's actual subject in the consent process means nobody consents to the research that is actually run. If your scientific question is obedience, 'mild pressure' is the strongest veil a committee will entertain."},
+        {text:"Advertise a 'study of memory and learning under mild social pressure'. Not the full picture, but not false either.",
+         r:1,principles:["deception","consent"],
+         outcome:"Defensible and close to what modern replications (e.g. Burger, 2009) did. The advert is truthful about the tasks, and 'mild social pressure' prepares people without destroying the manipulation. You will still need to justify the remaining concealment to the committee: why it is necessary, why a partial-cover version would not work, and what the debrief will say."},
+        {text:"Be fully transparent: 'we are studying how people respond to instructions from a researcher; some study details will be withheld until the debrief.'",
+         r:2,principles:["consent","deception"],
+         outcome:"The strongest start. Participants consent to the theme, to the existence of withheld detail, and to the debrief that will reveal it. Demand characteristics are a real cost — but you have shifted the design problem from ethics to methodology, which is the right place for it."}]},
+    {situation:"Midway through the session, participant 14 becomes visibly distressed — trembling hands, a shaky voice — and asks to stop. Your research assistant, following the script, replies: 'Please continue. The experiment requires that you continue.'",
+      options:[
+        {text:"Let the script play out. Stopping now ruins the paradigm — you would have no data without the pressure to continue.",
+         r:0,principles:["harm","withdraw"],
+         outcome:"No. Distress with a request to stop is the moment the study ends — not a data point to push through. Milgram's participants showed real distress that his design never anticipated; your design gets to anticipate it. A protocol without stopping rules is the first thing the committee will send back."},
+        {text:"Set a hard limit in the protocol: the experimenter may use the scripted prods at most twice, and any request to stop is honoured immediately.",
+         r:2,principles:["harm","withdraw"],
+         outcome:"Good. A pre-agreed ceiling on prods plus an unconditional stop-on-request rule keeps the manipulation meaningful while bounding it. Write it into the protocol verbatim, train the assistant on it, and make sure the participant hears 'you can stop at any time' more than once."},
+        {text:"Adopt a graded rule: prods may continue only while the participant is merely hesitant; any visible distress — trembling, sweating, verbal objection — ends the session at once.",
+         r:2,principles:["harm","withdraw"],
+         outcome:"Strongest version. It distinguishes hesitation (the phenomenon you study) from distress (the harm you prevent), and it gives your research assistant an observable trigger rather than a judgement call. Committees like rules a stranger could apply consistently."}]},
+    {situation:"When do participants learn the shocks were never real?",
+      options:[
+        {text:"Immediately after each session: a face-to-face debrief, a written take-home sheet, and time for questions before they leave the building.",
+         r:2,principles:["debrief","harm"],
+         outcome:"This is the standard the BPS expects. Debrief promptly, fully, and in person for deception studies — including revealing the actor, the absence of shocks, and why the concealment mattered. Offer a contact for later questions and a wellbeing check-in. Nobody should drive home still believing they hurt someone."},
+        {text:"Debrief everyone at the end of data collection, after the full cohort has run — otherwise word spreads and contaminates the remaining sessions.",
+         r:0,principles:["debrief","harm"],
+         outcome:"The classic justification, and the classic refusal. Contamination is a methodological cost you are asking participants to pay in continued, private distress. If the delay is genuinely scientifically necessary, the committee — not you — decides whether that cost is proportionate. For most paradigms it is not."},
+        {text:"Tell them only if they ask. Most people assume the shocks were staged anyway.",
+         r:0,principles:["debrief","deception"],
+         outcome:"'Most assume' is not 'all know', and silence after deception compounds the deception. The debrief is not an optional extra for the curious — it is the mechanism that returns participants to their pre-study state and restores their right to withdraw with full knowledge."}]},
+    {situation:"The morning after their session, participant 14 emails: now that they know what the study was really about, they want their data removed. Your supervisor points out their session was the strongest one.",
+      options:[
+        {text:"Remove their data, confirm it in writing the same day, and offer a follow-up call to check they are okay.",
+         r:2,principles:["withdraw","debrief"],
+         outcome:"Exactly right. Post-deception withdrawal is precisely what the right exists for — people may judge the study differently once they know what happened. Keep data identifiable just long enough to honour such requests, honour them without argument, and check on the person, not just the dataset."},
+        {text:"Explain the data is now anonymised and merged, so removal is technically impossible.",
+         r:0,principles:["withdraw","privacy"],
+         outcome:"This outcome is the point of anonymisation — and if it blocks a legitimate withdrawal, the flaw is in when you anonymised, not in the participant's request. Delete what you can, fix the timeline in the protocol, and never let 'technically impossible' be the answer to an ethics question."},
+        {text:"Offer a compromise: keep their scores since they cannot be identified, but remove anything that could link them to the distress episode.",
+         r:0,principles:["withdraw","debrief"],
+         outcome:"Partial removal on your terms is still refusal. The participant asked for withdrawal, not redaction. Ask what they actually want, honour it fully, and record the episode for your committee report — repeated requests are a signal about the protocol, not about the participant."}]},
+    {situation:"Final decision: writing up. Twelve participants showed visible distress; two sessions were stopped under your graded rule. Your supervisor suggests keeping this out of the paper to avoid scaring the committee at the next application.",
+      options:[
+        {text:"Report it fully: stopping rates, distress observations, and the safeguards that bounded them — in the paper and in the report back to the committee.",
+         r:2,principles:["debrief","harm"],
+         outcome:"This is research integrity in one move. Honest adverse-event reporting is not an admission of failure — it is evidence your safeguards worked and your field can learn from them. Committees approve researchers who tell the truth, and they remember the ones who do not."},
+        {text:"Mention in the limitations that 'some participants experienced mild discomfort', without the numbers.",
+         r:0,principles:["debrief","harm"],
+         outcome:"Vagueness is a form of concealment. Twelve distressed participants and two stopped sessions are material facts for readers and for future participants deciding whether to consent. If the numbers are unflattering, that is an argument for better safeguards — not softer prose."},
+        {text:"Leave it out of the paper but keep full internal records in case the committee ever asks.",
+         r:0,principles:["debrief","harm"],
+         outcome:"Data that exists only for the auditor is not integrity, it is insurance. The scientific record includes what happened to the people in it. Publish the safeguards and the events they caught — that combination is what makes deception research defensible at all."}]}
+  ]
+},
+{
+  id:"survey",title:"The Sunday Scaries Survey",tag:"Online data & consent",difficulty:"Medium",minutes:"~7 min",
+  teaser:"An online survey on student sleep and social media that quietly collects more than you planned for.",
+  brief:{role:"You are the principal investigator.",
+    context:"You are running an online survey on social media use, sleep and low mood among university students, promoted through paid social-media adverts, with a £100 voucher prize draw. It will take ten minutes, it will collect hundreds of responses, and — because it is online and self-report — every problem arrives silently, in a spreadsheet, after the fact.",
+    task:"Design the consent, the data handling and the safety nets before the first response lands."},
+  decisions:[
+    {situation:"First decision: the consent page. What does a participant see before question one?",
+      options:[
+        {text:"One dense page of small print covering everything: purpose, data storage, third-party sharing, withdrawal. One 'I agree' tick box.",
+         r:0,principles:["consent"],
+         outcome:"Comprehensively informed, effectively unread. Wall-of-text consent satisfies the file, not the participant. Committees increasingly look for evidence of comprehension — layered summaries, readable language — not just completeness. And a single tick box cannot carry genuinely separate choices, like whether quotes may be reused."},
+        {text:"Layered consent: a plain-English summary of what the study is and what happens to answers, expandable sections with the detail, and separate tick boxes for data reuse and anonymised quotes.",
+         r:2,principles:["consent","privacy"],
+         outcome:"Best practice. Layered consent respects both comprehension and choice: people can read as much as they want, and the separate boxes mean agreeing to the study is not silently agreeing to everything downstream. Record which boxes were ticked, and re-consent if the study's purpose changes."},
+        {text:"Skip the formal page: starting the survey implies consent, and a line at the top says the data is anonymous research.",
+         r:0,principles:["consent","withdraw"],
+         outcome:"Implied consent is only acceptable for minimal-risk, fully anonymous tasks — and a mental-health survey with identifiable prize-draw emails is neither. Without an explicit agreement moment you also have no clean way to tell people how to withdraw, which quietly deletes their right to."}]},
+    {situation:"Three weeks in, a free-text answer stops you cold: the respondent describes feeling hopeless and mentions 'not seeing the point of being here any more'. The survey is fully anonymous — you have no way to contact them.",
+      options:[
+        {text:"You cannot follow up — that was the design. Note it as a limitation and move on.",
+         r:0,principles:["harm","privacy"],
+         outcome:"Honest about the design, but the design is the failure. Anonymity and duty-of-care trade off, and for wellbeing topics you chose anonymity without building any other safety net. The lesson is not 'anonymity is wrong' — it is that risk of disclosure needs a planned response before launch."},
+        {text:"Try to identify the respondent through IP logs or response timestamps so you can send support resources.",
+         r:0,principles:["privacy","consent"],
+         outcome:"No — even with good intentions, this breaks the confidentiality promise every participant relied on, and probably the lawful basis you stated. De-identifying promises are not suspended when one response is frightening. The remedy has to be designed in advance, not improvised against your own privacy commitments."},
+        {text:"Build safety nets in before launch: a wellbeing-resources page shown after submission, helpline signposting on every page, and clear wording that researchers cannot respond to individual answers.",
+         r:2,principles:["harm","privacy"],
+         outcome:"The strongest answer — because it accepts the real trade-off and designs for it. Participants in anonymous studies get population-level care: visible, repeated signposting and honest expectation-setting, stated up front. Future protocols for sensitive topics should include exactly this, plus signposting in the advert itself."}]},
+    {situation:"The £100 prize draw: entry requires an email address. How do you handle it?",
+      options:[
+        {text:"Keep it simple: an optional email field at the end of the survey, stored alongside the responses.",
+         r:0,principles:["privacy","consent"],
+         outcome:"This single design choice converts an anonymous survey into confidential identifiable data — the email sits beside answers about low mood, and your adverts, consent wording and privacy promises were written for the anonymous version. Identifying details belong in a separate instrument, never in the response sheet."},
+        {text:"A separate prize-draw form on a different platform: emails never touch the survey data, and the list is deleted immediately after the draw.",
+         r:2,principles:["privacy"],
+         outcome:"Textbook. Data minimisation and separation: the incentive collects only what the draw needs, cannot be linked to responses, and is deleted on schedule. State all three facts in the consent page — participants are entitled to know that entering cannot link them to their answers."},
+        {text:"Drop the prize draw entirely and thank people for taking part.",
+         r:1,principles:["privacy"],
+         outcome:"Perfectly defensible — and a reminder that incentives are optional, not obligations. The trade-off is recruitment: paid adverts plus no incentive usually means slower samples. If you do use an incentive later, keep it modest and run it the separated way above."}]},
+    {situation:"A journal accepts your paper but requires you to share the raw data as an open-science condition. Your dataset includes free-text answers about low mood.",
+      options:[
+        {text:"Upload the full dataset as collected — open science means open data.",
+         r:0,principles:["privacy","consent"],
+         outcome:"Open science has a consent boundary. Free-text distress answers are exactly where re-identification happens (phrasing, timetables, events), and participants consented to research use — not to their words becoming publicly searchable. Sharing everything is not generosity; it is a new data breach, by publication."},
+        {text:"Share a de-identified numeric dataset, and either remove the free-text or share only paraphrased extracts that were explicitly consented for reuse.",
+         r:2,principles:["privacy","consent"],
+         outcome:"Right answer. Share what participants actually agreed to share: de-identified variables under a licence, plus quotes only where a separate tick box said they could be reused. If the journal insists, a controlled-access arrangement or a documented refusal citing consent limits is a legitimate, respected response."},
+        {text:"Refuse to share anything and accept losing the open-data badge.",
+         r:1,principles:["privacy"],
+         outcome:"Defensible on ethics, weaker on science. Blanket refusal protects participants but also withholds data that could be shared safely. The middle path — de-identified variables plus consented quotes — is both protectable and publishable, and most journals accept it without fuss."}]},
+    {situation:"Launch week: the paid adverts reached further than expected, and your spreadsheet shows 31 respondents who reported being 16 or 17.",
+      options:[
+        {text:"They ticked a box confirming they were 18 or over. If they lied, that is on them — their data stays in.",
+         r:0,principles:["consent","harm"],
+         outcome:"A consent gate is a promise you verify, not a shield you hide behind. Minors cannot give the consent your design assumed, their parents never agreed, and their data cannot simply be kept because a tick box exists. Blaming respondents for your missing age-assurance is the opposite of accountability."},
+        {text:"Include an enforced age gate in the survey tool before launch, a stated plan for responses from under-18s (delete on sight, with signposting), and check the advert targeting settings.",
+         r:2,principles:["consent","privacy"],
+         outcome:"Best practice: prevent, plan, and honour the plan. An enforced gate plus a pre-declared deletion procedure means an under-18 response has an automatic, documented outcome — and the signposting still reaches the young person who clicked through. Committees ask for exactly this on any study that could reach minors."},
+        {text:"Keep the consent process as it is, but exclude the under-18 rows during analysis once you notice them.",
+         r:0,principles:["consent","harm"],
+         outcome:"Excluding rows fixes the sample, not the study. Thirty-one minors gave research participation data without valid consent and got nothing back — no signposting, no safeguarding, no debrief. The problem happened at design time; analysis-time deletion is where you noticed it, not where it was solved."}]}
+  ]
+},
+{
+  id:"school",title:"The Year 9 Study",tag:"Vulnerable groups",difficulty:"Medium",minutes:"~7 min",
+  teaser:"Exam stress, a classroom of 13-year-olds, and a safeguarding disclosure you did not expect.",
+  brief:{role:"You are the visiting researcher.",
+    context:"A secondary school has invited you to run a questionnaire study on exam stress with its Year 9 pupils (ages 13–14), during one 50-minute lesson. The head teacher is enthusiastic and has already said yes on the school's behalf. You are 23, you are not their teacher, and for one lesson period you are the most interesting thing in the building.",
+    task:"Design consent, safeguarding and the classroom session so that the study is worth doing — and defensible the day after."},
+  decisions:[
+    {situation:"First decision: permissions. The head teacher's sign-off is in your inbox. What else does the study need before it runs?",
+      options:[
+        {text:"The head teacher has agreed and the school has informed parents. That covers it — gatekeeper consent is the standard route for school research.",
+         r:0,principles:["consent"],
+         outcome:"Gatekeeper consent is necessary and insufficient. The head can open the door; only the young people can agree to walk through it, and only their parents can be offered a genuine say. A study built on the head's enthusiasm alone treats pupils as a captive sample — the committee will see that instantly."},
+        {text:"Head teacher agreement, plus an information sheet and opt-out letter home to parents, plus written child-friendly assent from every pupil on the day.",
+         r:2,principles:["consent"],
+         outcome:"Strong and realistic. Opt-out (rather than opt-in) keeps the sample representative for a minimal-risk questionnaire, provided the parent letter is genuinely readable and the opt-out is honoured without the child being disadvantaged. The assent form — in language a 13-year-old actually uses — makes participation the pupil's own act, not the school's."},
+        {text:"Head teacher agreement plus written parental opt-in consent for every pupil, accepting that the sample will shrink.",
+         r:1,principles:["consent"],
+         outcome:"The most conservative route, and defensible — some committees and topics require it (sensitive questions, audio recording, anything beyond minimal risk). For a low-stress questionnaire the cost is a self-selected sample: pupils whose parents return forms differ systematically from those whose do not. Know which trade you are making, and say so in your limitations."}]},
+    {situation:"During the questionnaire, a pupil writes at the bottom of the page: 'sometimes it's not just stress, M calls me names and took my stuff again.' What do you do?",
+      options:[
+        {text:"Reassure them it stays between you — they trusted you with it, and breaking that would be a betrayal.",
+         r:0,principles:["harm","privacy"],
+         outcome:"A promise you cannot keep, and one that can leave a young person at risk. Children must be told before they take part that you cannot keep disclosures of harm secret — so that nothing they say is 'betrayed' later. Confidentiality has limits; safeguarding overrides it, and that has to be said up front, in their language."},
+        {text:"Follow the safeguarding protocol you agreed with the school before the study: explain to the pupil, kindly and in age-appropriate terms, that you have to pass this to the designated safeguarding lead — and do so the same day.",
+         r:2,principles:["harm","privacy"],
+         outcome:"Exactly the sequence, and note when it starts: before the session, when the limits of confidentiality are explained to all pupils. On the day, you do not investigate or promise secrecy — you listen, tell the pupil what happens next and that it is to help, and pass it to the designated lead the same day. Researchers report; schools safeguard."},
+        {text:"Stay out of it. You are a researcher, the bullying is outside your study's scope, and involving yourself could contaminate your data.",
+         r:0,principles:["harm"],
+         outcome:"No. Scope is not a defence, and 'contaminating the data' is not a consideration when a child discloses harm to you directly. You became a recipient of a safeguarding concern the moment you read it. Any protocol that has no answer to disclosure is not ready to run with minors."}]},
+    {situation:"The head teacher offers to have the class teacher stay in the room 'to keep order' during your session.",
+      options:[
+        {text:"Accept — the teacher knows the pupils and will keep the session calm.",
+         r:0,principles:["consent","harm"],
+         outcome:"Order at the cost of honesty. In front of their teacher, pupils' answers about stress, workload and school are written for an audience of one — and some will feel unable to opt out at all while the person who grades them watches. Perceived obligation to participate is a consent failure, even when everyone ticked the box."},
+        {text:"Politely decline: you and the teaching assistant only, teacher out of the room, pupils told clearly that the school will never see individual answers.",
+         r:2,principles:["consent","privacy"],
+         outcome:"Best practice, and worth stating in your protocol so the school knows why. Separating the researcher from the assessment relationship is what makes honest answers — and genuine opt-outs — possible. Say explicitly who will and will not see responses; 'the school will never see individual answers' is a sentence pupils remember."},
+        {text:"Go with whatever arrangement the school prefers; they know their pupils best.",
+         r:0,principles:["consent"],
+         outcome:"Defer to the school on classroom management, not on research ethics. The school's convenience and the study's validity are different questions, and only one of them is yours to protect. Committees expect you to arrive with the arrangement decided, not to delegate it on the day."}]},
+    {situation:"One pupil's parent returned the opt-out letter; another pupil simply does not want to take part on the day. Both are now sitting in the room during your session.",
+      options:[
+        {text:"Set them alternative quiet work at the back with the teaching assistant, and make sure nobody — including the class — treats that as a problem.",
+         r:2,principles:["consent","withdraw"],
+         outcome:"This is the moment the study's promises become real. Opt-out honoured without fuss, non-participation made ordinary, no questions asked in front of peers. If pupils see opting out cause embarrassment or a scene, the next cohort's consent is worth less — they learned what saying no costs."},
+        {text:"Encourage them gently to join in — the questionnaire is short and the data matters for the school.",
+         r:0,principles:["consent","withdraw"],
+         outcome:"'The data matters' is your interest, not theirs, and a gentle nudge from an adult with visitor-status in a classroom is not gentle at all. Pressure does not have to be harsh to be effective; it only has to make refusing feel awkward. Both pupils have said no. That is the whole procedure."},
+        {text:"Let them sit it out but note who declined, so the school can follow up on any wellbeing issues.",
+         r:0,principles:["withdraw","privacy"],
+         outcome:"Tracking wellbeing concerns is a school responsibility you can support — but recording who declined research participation turns a consent right into a flag in a school file. If a genuine concern arises, the school can act through its own channels. Your participation list is not a wellbeing register."}]},
+    {situation:"Last decision: the thank-you. The school suggests £10 vouchers per pupil, funded by the department, 'to reward participation'.",
+      options:[
+        {text:"Decline individual payment; give every pupil in the year group a small non-contingent thank-you (stationery or chocolate) and offer the school a plain-English summary of the findings.",
+         r:2,principles:["consent","harm"],
+         outcome:"Best practice. Non-contingent thanks reward the community without paying minors for their participation, and the findings summary is a real return for the school's time — pupils who took part deserve to learn what the study found. Save £10-per-pupil vouchers for the advert of a commercial survey, not a school study."},
+        {text:"Enter all participating pupils into a draw for three vouchers.",
+         r:1,principles:["consent"],
+         outcome:"Better than per-head payment — the reward is not contingent on completing anything — but still a minor-revisions answer. Lotteries make expected value tiny for everyone, which mostly solves the coercion problem; if you use one, say so in the assent form so 13-year-olds understand what a draw is. The non-contingent thank-you remains the cleaner default with children."},
+        {text:"Accept the vouchers: £10 for a 20-minute questionnaire is generous, and pupils deserve it.",
+         r:0,principles:["consent","harm"],
+         outcome:"With children, generosity reads as pressure. £10 is real money at 13, it makes refusal visibly costly ('you're turning down a tenner'), and parents who opted out may reasonably object that their child was paid to be studied anyway. Undue inducement is judged relative to the participant, not the pound amount."}]}
+  ]
+}];
+
+/* ════════════════════ 4. rating labels ════════════════════ */
+const RATE={2:{cls:"r2",label:"Model practice"},1:{cls:"r1",label:"Defensible, with caveats"},0:{cls:"r0",label:"Ethical risk"}};
+/* ════════════════════ 5. state ════════════════════ */
+const STORE_KEY="ethics-sim-v1";
+let S={attempts:{}};
+function loadState(){try{const raw=localStorage.getItem(STORE_KEY);if(raw){const p=JSON.parse(raw);if(p&&typeof p==="object")S={attempts:p.attempts||{}};}}catch(e){}}
+function persist(){try{localStorage.setItem(STORE_KEY,JSON.stringify(S));}catch(e){}}
+let VIEW={name:"picker",scen:null,di:0,picked:null,showModel:false};
+function scenById(id){return SCENARIOS.find(s=>s.id===id);}
+function scenScore(sc,picks){let pts=0;picks.forEach((p,i)=>{if(p!=null&&sc.decisions[i].options[p])pts+=sc.decisions[i].options[p].r;});return pts;}
+function verdictFor(pts,max){const ratio=max?pts/max:0;return ratio>=0.85?{cls:"approve",label:"Approved"}:ratio>=0.55?{cls:"minor",label:"Minor revisions"}:{cls:"major",label:"Major revisions — resubmit"};}
+
+/* ════════════════════ 6. play: picker / game / verdict ════════════════════ */
+function renderPlay(){
+  const root=$("play-root");
+  if(VIEW.name==="picker")root.innerHTML=renderPicker();
+  else if(VIEW.name==="game")root.innerHTML=renderGame();
+  else root.innerHTML=renderVerdict();
+  wirePlay();
+}
+function renderPicker(){
+  const cards=SCENARIOS.map(s=>{
+    const att=S.attempts[s.id];
+    let done="";
+    if(att&&att.picks.length){
+      const v=verdictFor(scenScore(s,att.picks),s.decisions.length*2);
+      done='<span class="verdict-chip" style="color:var(--'+(v.cls==="approve"?"ok":v.cls==="minor"?"amber":"danger")+')">● '+v.label+"</span>";
+    }
+    return '<button class="scen-card" data-start="'+s.id+'">'
+      +'<span class="tag">'+esc(s.tag)+"</span>"
+      +"<h3>"+esc(s.title)+"</h3>"
+      +"<p>"+esc(s.teaser)+"</p>"
+      +'<div class="meta"><span><b>'+s.decisions.length+"</b> decisions</span><span>"+esc(s.difficulty)+"</span><span>"+esc(s.minutes)+"</span></div>"+done
+      +"</button>";
+  }).join("");
+  return '<div class="scen-grid">'+cards+"</div>";
+}
+function renderGame(){
+  const sc=VIEW.scen,n=sc.decisions.length,i=VIEW.di,d=sc.decisions[i];
+  const letters=["A","B","C","D"];
+  const options=d.options.map((o,j)=>{
+    const picked=VIEW.picked===j;
+    return '<button class="option'+(picked?" picked":"")+'" data-opt="'+j+'"'+(VIEW.picked!=null?" disabled":"")
+      +'><span class="letter">'+letters[j]+"</span><span>"+esc(o.text)+"</span></button>";
+  }).join("");
+  let feedback="";
+  if(VIEW.picked!=null){
+    const o=d.options[VIEW.picked],rate=RATE[o.r];
+    const pills=o.principles.map(p=>'<span class="pill" style="background:var(--p-'+PRINCIPLES[p].color+'-bg);border-color:var(--p-'+PRINCIPLES[p].color+'-bd);color:var(--p-'+PRINCIPLES[p].color+'-bd)"><span class="dot" style="background:var(--p-'+PRINCIPLES[p].color+'-bd)"></span>'+esc(PRINCIPLES[p].label)+"</span>").join("");
+    feedback='<div class="feedback"><span class="rate '+rate.cls+'">'+rate.label+"</span><p>"+esc(o.outcome)+'</p><div class="pills">'+pills+"</div></div>"
+      +'<div class="row" style="margin-top:14px"><button class="btn" data-next>'+(i+1<n?"Next decision":"See the committee's verdict")+"</button></div>";
+  }
+  const brief='<div class="card brief"><h3>'+esc(sc.title)+"</h3>"
+    +'<p><span class="role">'+esc(sc.brief.role)+"</span> "+esc(sc.brief.context)+"</p>"
+    +'<p><b>Your task.</b> '+esc(sc.brief.task)+"</p></div>";
+  const decision='<div class="card"><div class="progress-row"><span class="label">Decision '+(i+1)+" of "+n+'</span><div class="pbar"><i style="width:'+((i+1)/n*100)+'%"></i></div></div>'
+    +'<p class="situation">'+esc(d.situation)+"</p>"+options+feedback
+    +'<div class="row" style="margin-top:10px"><button class="btn subtle" data-quit>Leave scenario</button></div></div>';
+  return brief+decision;
+}
+function renderVerdict(){
+  const sc=VIEW.scen,picks=S.attempts[sc.id].picks,n=sc.decisions.length;
+  const pts=scenScore(sc,picks),max=n*2,v=verdictFor(pts,max);
+  const tally={};
+  picks.forEach((p,i)=>{if(p!=null){const o=sc.decisions[i].options[p];o.principles.forEach(pr=>{(tally[pr]=tally[pr]||[]).push(o.r);});}});
+  const rows=Object.keys(PRINCIPLES).filter(k=>tally[k]).map(k=>{
+    const rs=tally[k],mark=Math.min.apply(null,rs),cls="m"+mark;
+    return '<div class="score-row"><span class="pl"><span class="dot" style="background:var(--p-'+PRINCIPLES[k].color+'-bd)"></span>'+esc(PRINCIPLES[k].label)+'</span><span class="marks '+cls+'">'+(mark===2?"Strong":mark===1?"Mixed":"Weak")+"</span></div>";
+  }).join("");
+  const review=sc.decisions.map((d,i)=>{
+    const o=d.options[picks[i]],best=d.options.find(b=>b.r===2),rate=RATE[o.r];
+    return "<tr><td>"+(i+1)+'</td><td>'+esc(o.text)+'</td><td><span class="rk '+rate.cls+'">'+rate.label+"</span></td>"
+      +'<td data-model-hidden="'+(VIEW.showModel?"0":"1")+'" style="'+(VIEW.showModel?"":"display:none")+'">'+esc(best.text)+"</td></tr>";
+  }).join("");
+  return '<div class="card"><h3>The committee has considered your protocol</h3>'
+    +'<p style="margin:0 0 6px;font-size:13.5px;color:var(--muted)">'+esc(sc.title)+" — scored "+pts+" of "+max+" points across "+n+" decisions.</p>"
+    +'<div style="margin:14px 0 18px"><span class="stamp '+v.cls+'">'+v.label+"</span></div>"
+    +'<div class="card" style="box-shadow:none;margin:0 0 16px">'+rows+"</div>"
+    +'<div class="row"><button class="btn outline" data-toggle-model>'+(VIEW.showModel?"Hide":"Show")+" the model answers</button>"
+    +'<button class="btn outline" data-again>Try again</button><button class="btn outline" data-picker>All scenarios</button><button class="btn" data-goreport>View my report</button></div></div>'
+    +'<div class="card"><h3>Decision by decision</h3><div class="tablewrap"><table class="review-table"><thead><tr><th>#</th><th>You chose</th><th>Committee rating</th><th'+(VIEW.showModel?"":" hidden")+">Model practice</th></tr></thead><tbody>"+review+"</tbody></table></div></div>";
+}
+function wirePlay(){
+  const root=$("play-root");
+  root.querySelectorAll("[data-start]").forEach(b=>b.addEventListener("click",()=>{
+    VIEW={name:"game",scen:scenById(b.dataset.start),di:0,picked:null,showModel:false};renderPlay();
+  }));
+  root.querySelectorAll("[data-opt]").forEach(b=>b.addEventListener("click",()=>{
+    if(VIEW.picked!=null)return;
+    VIEW.picked=+b.dataset.opt;
+    const att=S.attempts[VIEW.scen.id]=S.attempts[VIEW.scen.id]||{picks:[]};
+    att.picks[VIEW.di]=VIEW.picked;persist();
+    renderPlay();
+  }));
+  root.querySelectorAll("[data-next]").forEach(b=>b.addEventListener("click",()=>{
+    const n=VIEW.scen.decisions.length;
+    if(VIEW.di+1<n){VIEW.di++;VIEW.picked=null;}else VIEW.name="verdict";
+    renderPlay();
+  }));
+  root.querySelectorAll("[data-quit],[data-picker]").forEach(b=>b.addEventListener("click",()=>{VIEW={name:"picker",scen:null,di:0,picked:null,showModel:false};renderPlay();}));
+  root.querySelectorAll("[data-again]").forEach(b=>b.addEventListener("click",()=>{
+    delete S.attempts[VIEW.scen.id];persist();
+    VIEW={name:"game",scen:VIEW.scen,di:0,picked:null,showModel:false};renderPlay();
+  }));
+  root.querySelectorAll("[data-goreport]").forEach(b=>b.addEventListener("click",()=>showTab("report")));
+  root.querySelectorAll("[data-toggle-model]").forEach(b=>b.addEventListener("click",()=>{VIEW.showModel=!VIEW.showModel;renderPlay();}));
+}
+
+/* ════════════════════ 7. principles tab ════════════════════ */
+const EXTRA_CARDS=[
+  {title:"When is deception ever justified?",wide:true,color:"deception",
+   body:"<p>Committees (and the BPS) allow deception only when all of these hold: there is <b>no equally valid non-deceptive alternative</b>; the deception is <b>no more than minimal</b> — participants are not misled about anything that would affect their willingness to take part (health, risks, payment, their rights); the <b>scientific value is proportionate</b>; and the study is <b>approved in advance</b> with the full debrief plan attached.</p><p>The burden of proof sits with you. 'It is the classic paradigm' is a historical fact, not a justification — Milgram's own committee-era protections did not exist. Modern replications survive review by narrowing the concealment, stopping on distress, debriefing immediately and reporting adverse events.</p>",
+   ref:"See BPS Code of Human Research Ethics (2022), principles on deception and debriefing."},
+  {title:"Vulnerable participants & gatekeeper consent",wide:true,color:"consent",
+   body:"<p>'Vulnerable' describes a <b>situation, not a type of person</b>: anyone can be vulnerable where power, capacity, dependency or circumstance limits their freedom to refuse — children in a classroom, patients of the recruiting clinician, students of the researcher. Gatekeeper consent (a school, ward or guardian agreeing) is <b>necessary but never sufficient</b>: it must be paired with consent or assent from the participant themselves, in language they understand.</p><p>With children specifically: explain the limits of confidentiality <b>before</b> data collection; agree a safeguarding protocol with the setting (who you report disclosures to, same day); avoid teacher presence during data collection; keep any thank-you non-contingent; and honour opt-outs invisibly, so that saying no costs nothing.</p>",
+   ref:"See BPS Code of Human Research Ethics (2022) and your institution's safeguarding policy."}
+];
+function buildPrinciples(){
+  const cards=P_COLORS.map(k=>{
+    const p=PRINCIPLES[k];
+    return '<div class="card guide-card"><h3><span class="swatch" style="background:var(--p-'+p.color+'-bg);border-color:var(--p-'+p.color+'-bd)"></span>'+esc(p.label)+"</h3>"
+      +"<p>"+esc(p.define)+"</p>"
+      +'<p><b>Why it matters.</b> '+esc(p.why)+"</p>"
+      +'<div class="good"><b>What good looks like.</b> '+esc(p.good)+"</div>"
+      +'<p class="ref">Scored in every scenario where this principle is at stake.</p></div>';
+  }).join("");
+  const extra=EXTRA_CARDS.map(c=>'<div class="card guide-card wide"><h3><span class="swatch" style="background:var(--p-'+c.color+'-bg);border-color:var(--p-'+c.color+'-bd)"></span>'+esc(c.title)+"</h3>"+c.body+'<p class="ref">'+esc(c.ref)+"</p></div>").join("");
+  $("principles-cards").innerHTML=cards+extra;
+}
+
+/* ════════════════════ 8. report tab ════════════════════ */
+const REFLECTIONS=[
+  "Which decision was hardest to call — and which two principles pulled against each other there?",
+  "Deception trades informed consent for scientific validity. Where did the simulator show you that trade-off most clearly, and was the price worth it?",
+  "Think of one thing you would now add to a real ethics application (a stopping rule, a signposting page, a data-separation plan). Why did it not occur to you before?",
+  "Where did a 'harmless convenience' — storing emails together, keeping the teacher in the room — quietly do the most ethical damage?"
+];
+function renderReport(){
+  const root=$("report-root"),ids=Object.keys(S.attempts).filter(id=>S.attempts[id].picks&&S.attempts[id].picks.length&&scenById(id));
+  if(!ids.length){
+    root.innerHTML='<div class="card"><div class="empty"><p><b>No attempts yet.</b><br>Play a scenario on the Simulate tab and your decisions will be logged here — your choices beside the model answers, a principle tally, and reflection prompts you can take to a seminar or supervision.</p></div></div>';
+    return;
+  }
+  let totPts=0,totMax=0,nDec=0,nStrong=0;
+  const tally={};
+  const blocks=ids.map(id=>{
+    const sc=scenById(id),picks=S.attempts[id].picks;
+    const pts=scenScore(sc,picks),max=sc.decisions.length*2,v=verdictFor(pts,max);
+    totPts+=pts;totMax+=max;nDec+=picks.filter(p=>p!=null).length;
+    const rows=sc.decisions.map((d,i)=>{
+      const o=d.options[picks[i]];if(!o)return"";
+      if(o.r===2)nStrong++;
+      o.principles.forEach(pr=>{(tally[pr]=tally[pr]||[]).push(o.r);});
+      const best=d.options.find(b=>b.r===2),rate=RATE[o.r];
+      return "<tr><td>D"+(i+1)+"</td><td>"+esc(o.text)+'</td><td><span class="rk '+rate.cls+'">'+rate.label+"</span></td><td>"+esc(best.text)+"</td></tr>";
+    }).join("");
+    return '<div class="card"><h3>'+esc(sc.title)+' <span class="stamp '+v.cls+'" style="font-size:13px;padding:4px 12px;transform:none;margin-left:8px">'+v.label+"</span></h3>"
+      +'<p class="hint" style="margin:0 0 10px">Scored '+pts+" of "+max+" points.</p>"
+      +'<div class="tablewrap"><table class="review-table"><thead><tr><th>Decision</th><th>You chose</th><th>Rating</th><th>Model practice</th></tr></thead><tbody>'+rows+"</tbody></table></div></div>";
+  }).join("");
+  const prRows=Object.keys(PRINCIPLES).filter(k=>tally[k]).map(k=>{
+    const rs=tally[k],mark=Math.min.apply(null,rs),cls="m"+mark;
+    return '<div class="score-row"><span class="pl"><span class="dot" style="background:var(--p-'+PRINCIPLES[k].color+'-bd)"></span>'+esc(PRINCIPLES[k].label)+' <span class="hint">('+rs.length+' decision'+(rs.length>1?"s":"")+')</span></span><span class="marks '+cls+'">'+(mark===2?"Strong":mark===1?"Mixed":"Weak")+"</span></div>";
+  }).join("");
+  const overall=verdictFor(totPts,totMax);
+  const pct=totMax?Math.round(100*totStrongSafe(nStrong,nDec)):0;
+  root.innerHTML='<div class="stat-grid">'
+    +'<div class="stat"><div class="v">'+ids.length+"</div><div class='l'>scenario"+(ids.length>1?"s":"")+" attempted</div></div>"
+    +'<div class="stat"><div class="v">'+nDec+"</div><div class='l'>decisions made</div></div>"
+    +'<div class="stat"><div class="v">'+pct+"%</div><div class='l'>model-practice choices</div></div>"
+    +'<div class="stat"><div class="v" style="color:var(--'+(overall.cls==="approve"?"ok":overall.cls==="minor"?"amber":"danger")+')">'+Math.round(100*totPts/totMax)+"%</div><div class='l'>overall ethics score</div></div></div>"
+    +'<div class="card"><h3>Principles at a glance</h3>'+prRows+"</div>"
+    +blocks
+    +'<div class="card"><h3>Reflection prompts</h3>'+REFLECTIONS.map(r=>'<p class="reflect">'+esc(r)+"</p>").join("")
+    +'<div class="row" style="margin-top:14px"><button class="btn" data-export>Export report (HTML)</button><button class="btn outline" data-wipe>Erase all my data</button></div></div>';
+  $("report-root").querySelector("[data-export]").addEventListener("click",exportReport);
+  $("report-root").querySelector("[data-wipe]").addEventListener("click",()=>{
+    if(confirm("Erase every recorded decision from this browser? This cannot be undone.")){
+      S={attempts:{}};persist();renderReport();renderPlay();toast("All decisions erased");
+    }
+  });
+}
+function totStrongSafe(strong,total){return total?strong/total:0;}
+function exportReport(){
+  const ids=Object.keys(S.attempts).filter(id=>S.attempts[id].picks&&S.attempts[id].picks.length&&scenById(id));
+  if(!ids.length)return;
+  const letters=["A","B","C","D"],now=new Date();
+  let totPts=0,totMax=0;
+  const scenHtml=ids.map(id=>{
+    const sc=scenById(id),picks=S.attempts[id].picks,pts=scenScore(sc,picks),max=sc.decisions.length*2;
+    totPts+=pts;totMax+=max;const v=verdictFor(pts,max);
+    const rows=sc.decisions.map((d,i)=>{
+      const o=d.options[picks[i]];if(!o)return"";
+      const best=d.options.find(b=>b.r===2),rate=RATE[o.r];
+      return "<tr><td>D"+(i+1)+"</td><td>"+esc(o.text)+"</td><td><b>"+rate.label+"</b></td><td>"+esc(best.text)+"</td></tr>";
+    }).join("");
+    return "<h2>"+esc(sc.title)+" — "+v.label+" ("+pts+"/"+max+")</h2>"
+      +"<table border='1' cellpadding='6' cellspacing='0'><tr><th>Decision</th><th>You chose</th><th>Rating</th><th>Model practice</th></tr>"+rows+"</table>";
+  }).join("");
+  const html="<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Ethics Simulator — reflection report</title>"
+    +"<style>body{font-family:Georgia,serif;max-width:860px;margin:32px auto;padding:0 20px;color:#20262a;line-height:1.6}h1{font-size:26px}h2{font-size:19px;margin-top:32px}table{border-collapse:collapse;width:100%;font-size:13.5px}th{background:#f2f8f7;text-align:left}small{color:#5c6663}</style></head><body>"
+    +"<h1>Ethics Simulator — reflection report</h1>"
+    +"<p><small>Generated "+now.toLocaleDateString(undefined,{year:"numeric",month:"long",day:"numeric"})+" · Ethics Simulator by Joshua Bellot (Psych &amp; Me) · Teaching aid: feedback paraphrases good practice, not legal advice.</small></p>"
+    +"<p><b>Overall:</b> "+totPts+" of "+totMax+" points — "+verdictFor(totPts,totMax).label+".</p>"
+    +scenHtml
+    +"<h2>Reflection prompts</h2><ol>"+REFLECTIONS.map(r=>"<li>"+esc(r)+"</li>").join("")+"</ol></body></html>";
+  const blob=new Blob([html],{type:"text/html"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);a.download="ethics-simulator-report.html";
+  document.body.appendChild(a);a.click();
+  setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},400);
+  toast("Report exported");
+}
+
+/* ════════════════════ 9. tabs ════════════════════ */
+const TABS=["play","principles","report"];
+function showTab(name){
+  TABS.forEach(t=>{
+    $("panel-"+t).hidden=t!==name;
+    $("tab-"+t).setAttribute("aria-selected",String(t===name));
+  });
+  if(name==="report")renderReport();
+  history.replaceState(null,"","#"+name);
+}
+TABS.forEach(t=>$("tab-"+t).addEventListener("click",()=>showTab(t)));
+window.addEventListener("hashchange",()=>{const t=location.hash.slice(1);if(TABS.includes(t))showTab(t);});
+
+/* ════════════════════ 10. theme ════════════════════ */
+const THEME_KEY="ethics-sim-theme";
+const ICON_MOON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+const ICON_SUN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>';
+function applyTheme(t){
+  document.documentElement.dataset.theme=t;
+  $("theme-btn").innerHTML=t==="dark"?ICON_SUN:ICON_MOON;
+  $("theme-btn").setAttribute("aria-label",t==="dark"?"Switch to light mode":"Switch to dark mode");
+  document.querySelector('meta[name="theme-color"]').setAttribute("content",t==="dark"?"#211f1c":"#f8f7f3");
+}
+function initTheme(){
+  const saved=localStorage.getItem(THEME_KEY);
+  applyTheme(saved==="dark"||saved==="light"?saved:(window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"));
+  $("theme-btn").addEventListener("click",()=>{
+    const next=document.documentElement.dataset.theme==="dark"?"light":"dark";
+    localStorage.setItem(THEME_KEY,next);applyTheme(next);
+    toast(next==="dark"?"Dark mode on":"Light mode on");
+  });
+}
+
+/* ════════════════════ 11. boot ════════════════════ */
+(function boot(){
+  initTheme();
+  loadState();
+  buildPrinciples();
+  renderPlay();
+  const init=TABS.includes(location.hash.slice(1))?location.hash.slice(1):"play";
+  showTab(init);
+})();
+</script>
+</body>
+</html>
